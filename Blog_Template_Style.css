@@ -1,0 +1,33 @@
+body {
+    background: white;
+    color: black;
+}
+
+h1 {
+    background: white;
+    color: #990000;
+    font-size: 40px;
+}
+
+h2 {
+    background: white;
+    color: #990000;
+    font-size: 14px;
+}
+
+h3 {
+    background: white;
+    color: black;
+    font-size: 14px;
+}
+
+
+.d-toc {
+  color: #990000;
+  font-size: 0.8em;
+  line-height: 1em;
+}
+
+a:hover {
+  color: #990000;
+}

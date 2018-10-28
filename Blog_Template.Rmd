@@ -1,0 +1,110 @@
+---
+title: "Sample Immediate Feedback Report"
+description: |
+  This is super easy to create and edit!
+author:
+  - name: Dana Wanzer
+    affiliation: Dana Wanzer Consulting
+    url: http://danawanzer.com
+date: October 29, 2018
+output: 
+  md_document:
+  radix::radix_article:
+    css: Blog_Template_Style.css
+    toc: yes
+always_allow_html: yes
+---
+
+```{r inclue = FALSE, echo = FALSE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+
+#Load packages
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(apa)
+library(janitor)
+
+#Read in data from Survey Gizmo or Qualtrics Here
+dat <- read.csv("Blog_Template_Data.csv")
+
+#Remove the junk columns I don't need
+dat <- dat %>%
+  select(-c(2:21))
+```
+
+# Participant Learning
+
+Please rating your knowledge or skills before and after the webinar.
+
+```{r}
+levels = c("Poor",
+           "Fair", 
+           "Good",
+           "Very Good",
+           "Excellent")
+
+#Note the really horrible names coming from Survey Gizmo. I use the 'rename' function to fix these.
+dat_PL <- dat %>%
+  select(Before.the.webinar..I.would.rate.my.knowledge.or.skills.as..Rate.your.knowledge.or.skills.BEFORE.and.AFTER.the.webinar.Â., Now.after.the.webinar..I.would.rate.my.knowledge.or.skills.as..Rate.your.knowledge.or.skills.BEFORE.and.AFTER.the.webinar.Â.) %>%
+  rename(Before = Before.the.webinar..I.would.rate.my.knowledge.or.skills.as..Rate.your.knowledge.or.skills.BEFORE.and.AFTER.the.webinar.Â., 
+         After = Now.after.the.webinar..I.would.rate.my.knowledge.or.skills.as..Rate.your.knowledge.or.skills.BEFORE.and.AFTER.the.webinar.Â.) %>%
+  mutate_all(factor, levels = levels)
+
+dat_PL_nmean <- dat_PL %>% 
+  mutate_all(funs(as.numeric(.))) %>%
+  gather(Variable, value) %>% 
+  group_by(Variable) %>% 
+  filter(!is.na(value)) %>%
+  summarise(n = n(),
+            Mean = round(mean(as.numeric(value), na.rm = TRUE),2)) 
+
+dat_PL_freq <- dat_PL %>%
+  gather(Variable, value) %>%
+  filter(!is.na(value)) %>%
+  tabyl(Variable, value) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting(digits = 0) %>%
+  as.data.frame()
+
+dat_PL_table <- list(dat_PL_nmean, dat_PL_freq) %>%
+  reduce(full_join, by = "Variable") %>%
+  arrange(Mean)
+
+kable(dat_PL_table, 
+      col.names = c("", "n", "Mean", levels),
+      align = c('l', rep('r', times = 7))) %>% 
+  kable_styling(full_width = TRUE, 
+                position = "left")
+```
+
+```{r, echo = FALSE}
+#Include a t-test comparison
+dat_PL_ttest <- t.test(x = as.numeric(dat_PL$Before), y = as.numeric(dat_PL$After), paired = TRUE)
+apattest <- apa(dat_PL_ttest)
+```
+
+The following shows the statistical difference between ratings of participants' knowledge or skills from before to after, as well as the Cohen's d effect size of the difference in ratings: `r apattest`.
+
+# Open-Ended Items
+
+This is all test data so it's meaningless, but participants' actual responses would go here instead. 
+
+### What could be done to improve this webinar?
+
+```{r}
+Improve <- dat %>%
+  select(What.could.be.done.to.improve.this.webinar.) %>%
+  filter(What.could.be.done.to.improve.this.webinar. != "") %>%
+  sample_n(10) %>%
+  rownames_to_column() %>%
+  select(What.could.be.done.to.improve.this.webinar.)
+
+x <- kable(Improve,
+      col.names = c("Response")) %>% 
+  kable_styling(full_width = TRUE, 
+                position = "left")
+gsub("<thead>.*</thead>", "", x) #This removes the header from the table, which would just be 'x' or 'variable' otherwise
+```
+
